@@ -1,0 +1,114 @@
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // ⚠️ 請替換為您自己的 Firebase 專案設定
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let questions = []; // 用來存放從雲端抓取的題目
+    let currentIdx = 0;
+
+    // --- 功能：從 Firestore 抓取特定單元的題目 ---
+    async function loadUnitData(unitName) {
+        const docRef = doc(db, "english_units", unitName);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            // 更新學習內容介面
+            updateLearnUI(data.learningRules);
+            // 存入題庫
+            questions = data.quizData;
+            console.log("題庫載入成功！");
+        } else {
+            console.log("找不到該單元資料");
+        }
+    }
+
+    function updateLearnUI(rules) {
+        const learnSection = document.getElementById('learn-section');
+        let html = '<h3>文法重點整理</h3>';
+        rules.forEach(rule => {
+            html += `
+                <div class="rule-card">
+                    <strong>${rule.title}</strong>
+                    <div class="example">${rule.content}</div>
+                </div>`;
+        });
+        learnSection.innerHTML = html;
+    }
+
+    // 將函數掛載到 window，讓 HTML 的 onclick 可以觸發
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+        
+        if(tab === 'learn') {
+            document.getElementById('learn-section').classList.add('active');
+            document.querySelector('[onclick="switchTab(\'learn\')"]').classList.add('active');
+        } else {
+            document.getElementById('quiz-section').classList.add('active');
+            document.querySelector('[onclick="switchTab(\'quiz\')"]').classList.add('active');
+            currentIdx = 0; // 重置進度
+            loadQuestion();
+        }
+    };
+
+    window.loadQuestion = function() {
+        if(questions.length === 0) {
+            document.getElementById('question-text').innerText = "載入中或暫無題目...";
+            return;
+        }
+        if(currentIdx >= questions.length) {
+            document.getElementById('quiz-container').innerHTML = "<h3>🎉 測驗完成！</h3>";
+            document.getElementById('next-btn').style.display = 'none';
+            return;
+        }
+        
+        const qData = questions[currentIdx];
+        document.getElementById('question-text').innerText = `${currentIdx + 1}. ${qData.q}`;
+        const optContainer = document.getElementById('options-container');
+        optContainer.innerHTML = '';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('next-btn').style.display = 'none';
+
+        qData.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, qData.ans);
+            optContainer.appendChild(btn);
+        });
+    };
+
+    window.checkAnswer = function(selected, correct) {
+        const feedback = document.getElementById('feedback');
+        const btns = document.querySelectorAll('.option-btn');
+        btns.forEach(btn => btn.disabled = true);
+
+        if(selected === correct) {
+            feedback.innerText = "✅ 正確！";
+            feedback.style.color = '#2ecc71';
+        } else {
+            feedback.innerText = `❌ 錯誤，答案是：${questions[currentIdx].options[correct]}`;
+            feedback.style.color = '#e74c3c';
+        }
+        document.getElementById('next-btn').style.display = 'block';
+        currentIdx++;
+    };
+
+    // 頁面載入後自動抓取 "be_like" 單元
+    loadUnitData("be_like");
+
+</script>
