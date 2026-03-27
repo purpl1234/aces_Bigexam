@@ -1,114 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACES 單字小書管理系統</title>
+    <style>
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --dark: #333; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); }
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #eee; transition: 0.3s; }
+        .btn.active { background: var(--primary); color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        /* 管理介面樣式 */
+        input, textarea, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .admin-box { background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; }
+        
+        /* 學習區樣式 */
+        .rule-card { border-left: 5px solid var(--primary); background: #f0f4f8; padding: 15px; margin: 10px 0; border-radius: 4px; }
+        
+        /* 測驗區樣式 */
+        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+        .opt-btn:hover { background: #f0f7ff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="app-title">ACES 英文學習</h1>
+
+    <div class="nav">
+        <button class="btn active" onclick="showPage('learn')">📖 學習</button>
+        <button class="btn" onclick="showPage('quiz')">✍️ 測驗</button>
+        <button class="btn" onclick="showPage('admin')">⚙️ 管理</button>
+    </div>
+
+    <div id="page-learn" class="section active">
+        <select id="unit-selector-learn" onchange="loadSpecificUnit(this.value)">
+            <option value="">-- 請選擇單元 --</option>
+        </select>
+        <div id="learning-content">請先選擇單元</div>
+    </div>
+
+    <div id="page-quiz" class="section">
+        <select id="unit-selector-quiz" onchange="startQuiz(this.value)">
+            <option value="">-- 選擇單元開始測驗 --</option>
+        </select>
+        <div id="quiz-area"></div>
+    </div>
+
+    <div id="page-admin" class="section">
+        <div id="admin-login">
+            <input type="password" id="admin-pw" placeholder="請輸入管理密碼">
+            <button class="btn active" onclick="checkAdmin()">登入管理模式</button>
+        </div>
+        <div id="admin-content" style="display:none;" class="admin-box">
+            <h3>建立/修改單元</h3>
+            <input type="text" id="edit-unit-id" placeholder="單元 ID (例如: unit1)">
+            <input type="text" id="edit-unit-title" placeholder="單元名稱 (例如: Be Like 用法)">
+            <textarea id="edit-unit-rules" rows="5" placeholder="教學內容 (JSON 格式或純文字)"></textarea>
+            <textarea id="edit-unit-quiz" rows="5" placeholder="題庫內容 (JSON 格式)"></textarea>
+            <button class="btn active" onclick="saveToFirebase()">儲存到雲端</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ⚠️ 請替換為您自己的 Firebase 專案設定
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        // 🔴 請在此處貼上你剛才在 Firebase 申請的 API Key 內容
+        apiKey: "AIzaSyCyv5f5i4x6_1pKVKGfNNDvOULTYAuqvCg",
+  authDomain: "aces-bigexam.firebaseapp.com",
+  projectId: "aces-bigexam",
+  storageBucket: "aces-bigexam.firebasestorage.app",
+  messagingSenderId: "591140296494",
+  appId: "1:591140296494:web:f5e149fceebcb025e3ccbf"
     };
 
-    // 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let questions = []; // 用來存放從雲端抓取的題目
-    let currentIdx = 0;
+    // 切換分頁
+    window.showPage = (pageId) => {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        if(pageId === 'admin') document.getElementById('admin-content').style.display = 'none';
+        refreshUnitLists();
+    };
 
-    // --- 功能：從 Firestore 抓取特定單元的題目 ---
-    async function loadUnitData(unitName) {
-        const docRef = doc(db, "english_units", unitName);
-        const docSnap = await getDoc(docRef);
+    // 密碼檢查 (暫定為 1234，您可以自己改)
+    window.checkAdmin = () => {
+        if(document.getElementById('admin-pw').value === "1234") {
+            document.getElementById('admin-login').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+        } else {
+            alert("密碼錯誤！");
+        }
+    };
 
+    // 儲存到 Firebase
+    window.saveToFirebase = async () => {
+        const id = document.getElementById('edit-unit-id').value;
+        const title = document.getElementById('edit-unit-title').value;
+        const rules = document.getElementById('edit-unit-rules').value;
+        const quiz = document.getElementById('edit-unit-quiz').value;
+
+        if(!id || !title) return alert("請填寫 ID 與標題");
+
+        try {
+            await setDoc(doc(db, "english_units", id), {
+                title: title,
+                learningContent: rules,
+                quizData: JSON.parse(quiz)
+            });
+            alert("儲存成功！");
+            refreshUnitLists();
+        } catch (e) {
+            alert("儲存失敗，請檢查格式是否為正確的 JSON");
+        }
+    };
+
+    // 更新下拉選單
+    async function refreshUnitLists() {
+        const querySnapshot = await getDocs(collection(db, "english_units"));
+        const selectors = [document.getElementById('unit-selector-learn'), document.getElementById('unit-selector-quiz')];
+        selectors.forEach(s => {
+            s.innerHTML = '<option value="">-- 請選擇單元 --</option>';
+            querySnapshot.forEach(doc => {
+                s.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`;
+            });
+        });
+    }
+
+    // 載入單元教學
+    window.loadSpecificUnit = async (id) => {
+        if(!id) return;
+        const docSnap = await getDoc(doc(db, "english_units", id));
         if (docSnap.exists()) {
-            const data = docSnap.data();
-            // 更新學習內容介面
-            updateLearnUI(data.learningRules);
-            // 存入題庫
-            questions = data.quizData;
-            console.log("題庫載入成功！");
-        } else {
-            console.log("找不到該單元資料");
-        }
-    }
-
-    function updateLearnUI(rules) {
-        const learnSection = document.getElementById('learn-section');
-        let html = '<h3>文法重點整理</h3>';
-        rules.forEach(rule => {
-            html += `
-                <div class="rule-card">
-                    <strong>${rule.title}</strong>
-                    <div class="example">${rule.content}</div>
-                </div>`;
-        });
-        learnSection.innerHTML = html;
-    }
-
-    // 將函數掛載到 window，讓 HTML 的 onclick 可以觸發
-    window.switchTab = function(tab) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-        
-        if(tab === 'learn') {
-            document.getElementById('learn-section').classList.add('active');
-            document.querySelector('[onclick="switchTab(\'learn\')"]').classList.add('active');
-        } else {
-            document.getElementById('quiz-section').classList.add('active');
-            document.querySelector('[onclick="switchTab(\'quiz\')"]').classList.add('active');
-            currentIdx = 0; // 重置進度
-            loadQuestion();
+            document.getElementById('learning-content').innerHTML = `<div class="rule-card">${docSnap.data().learningContent}</div>`;
         }
     };
 
-    window.loadQuestion = function() {
-        if(questions.length === 0) {
-            document.getElementById('question-text').innerText = "載入中或暫無題目...";
-            return;
-        }
-        if(currentIdx >= questions.length) {
-            document.getElementById('quiz-container').innerHTML = "<h3>🎉 測驗完成！</h3>";
-            document.getElementById('next-btn').style.display = 'none';
-            return;
-        }
-        
-        const qData = questions[currentIdx];
-        document.getElementById('question-text').innerText = `${currentIdx + 1}. ${qData.q}`;
-        const optContainer = document.getElementById('options-container');
-        optContainer.innerHTML = '';
-        document.getElementById('feedback').innerText = '';
-        document.getElementById('next-btn').style.display = 'none';
-
-        qData.options.forEach((opt, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.innerText = opt;
-            btn.onclick = () => checkAnswer(index, qData.ans);
-            optContainer.appendChild(btn);
-        });
-    };
-
-    window.checkAnswer = function(selected, correct) {
-        const feedback = document.getElementById('feedback');
-        const btns = document.querySelectorAll('.option-btn');
-        btns.forEach(btn => btn.disabled = true);
-
-        if(selected === correct) {
-            feedback.innerText = "✅ 正確！";
-            feedback.style.color = '#2ecc71';
-        } else {
-            feedback.innerText = `❌ 錯誤，答案是：${questions[currentIdx].options[correct]}`;
-            feedback.style.color = '#e74c3c';
-        }
-        document.getElementById('next-btn').style.display = 'block';
-        currentIdx++;
-    };
-
-    // 頁面載入後自動抓取 "be_like" 單元
-    loadUnitData("be_like");
-
+    // 這裡可以繼續加入之前的 startQuiz 邏輯...
+    refreshUnitLists();
 </script>
+</body>
+</html>
