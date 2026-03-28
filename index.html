@@ -3,67 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACES 單字小書管理系統</title>
+    <title>ACES 複習</title>
     <style>
-        :root { --primary: #4a90e2; --bg: #f5f7fa; --dark: #333; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --dark: #333; --success: #2ecc71; --error: #e74c3c; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); line-height: 1.6; }
         .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary); }
-        .nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #eee; transition: 0.3s; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 25px; }
+        
+        .nav { display: flex; gap: 10px; margin-bottom: 25px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #e0e0e0; transition: 0.3s; font-size: 16px; }
         .btn.active { background: var(--primary); color: white; }
-        .section { display: none; }
+        .section { display: none; min-height: 300px; }
         .section.active { display: block; }
         
-        /* 管理介面樣式 */
-        input, textarea, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .admin-box { background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; }
+        /* 核心排版修復：保留換行與原始格式 */
+        #learning-content { 
+            white-space: pre-wrap; 
+            word-wrap: break-word;
+            background: #f9f9f9;
+            padding: 20px;
+            border-left: 5px solid var(--primary);
+            border-radius: 4px;
+            font-size: 18px;
+            margin-top: 15px;
+            color: #444;
+        }
+
+        .q-title { font-size: 20px; margin-bottom: 15px; font-weight: bold; }
+        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: white; font-size: 16px; transition: 0.2s; }
+        .opt-btn:hover { background: #f0f7ff; border-color: var(--primary); }
         
-        /* 學習區樣式 */
-        .rule-card { border-left: 5px solid var(--primary); background: #f0f4f8; padding: 15px; margin: 10px 0; border-radius: 4px; }
-        
-        /* 測驗區樣式 */
-        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
-        .opt-btn:hover { background: #f0f7ff; }
+        .admin-box { background: #fff3cd; padding: 20px; border-radius: 10px; border: 1px solid #ffeeba; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        textarea { font-family: monospace; white-space: pre-wrap; }
+        .action-row { display: flex; gap: 10px; margin-top: 10px; }
+        .save-btn { background: var(--success); color: white; flex: 2; }
+        .load-btn { background: #6c757d; color: white; flex: 1; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="app-title">ACES 英文學習</h1>
+    <h1 id="app-main-title">ACES 複習</h1>
 
     <div class="nav">
-        <button class="btn active" onclick="showPage('learn')">📖 學習</button>
-        <button class="btn" onclick="showPage('quiz')">✍️ 測驗</button>
-        <button class="btn" onclick="showPage('admin')">⚙️ 管理</button>
+        <button class="btn active" id="btn-learn" onclick="showPage('learn')">📖 學習模式</button>
+        <button class="btn" id="btn-quiz" onclick="showPage('quiz')">✍️ 測驗模式</button>
+        <button class="btn" id="btn-admin" onclick="showPage('admin')">⚙️ 管理後台</button>
     </div>
 
     <div id="page-learn" class="section active">
-        <select id="unit-selector-learn" onchange="loadSpecificUnit(this.value)">
-            <option value="">-- 請選擇單元 --</option>
-        </select>
-        <div id="learning-content">請先選擇單元</div>
+        <label>請選擇複習單元：</label>
+        <select id="unit-selector-learn" onchange="loadSpecificUnit(this.value)"></select>
+        <div id="learning-content">歡迎使用 ACES 複習系統，請先選擇單元。</div>
     </div>
 
     <div id="page-quiz" class="section">
-        <select id="unit-selector-quiz" onchange="startQuiz(this.value)">
-            <option value="">-- 選擇單元開始測驗 --</option>
-        </select>
-        <div id="quiz-area"></div>
+        <label>選擇單元進行測驗：</label>
+        <select id="unit-selector-quiz" onchange="startQuiz(this.value)"></select>
+        <hr>
+        <div id="quiz-area">
+            <p style="text-align:center; color:#888;">選取單元後題目將自動載入。</p>
+        </div>
     </div>
 
     <div id="page-admin" class="section">
         <div id="admin-login">
-            <input type="password" id="admin-pw" placeholder="請輸入管理密碼">
-            <button class="btn active" onclick="checkAdmin()">登入管理模式</button>
+            <p>請輸入管理密碼：</p>
+            <input type="password" id="admin-pw" placeholder="預設 1234">
+            <button class="btn active" style="width:100%" onclick="checkAdmin()">登入管理</button>
         </div>
+        
         <div id="admin-content" style="display:none;" class="admin-box">
-            <h3>建立/修改單元</h3>
-            <input type="text" id="edit-unit-id" placeholder="單元 ID (例如: unit1)">
-            <input type="text" id="edit-unit-title" placeholder="單元名稱 (例如: Be Like 用法)">
-            <textarea id="edit-unit-rules" rows="5" placeholder="教學內容 (JSON 格式或純文字)"></textarea>
-            <textarea id="edit-unit-quiz" rows="5" placeholder="題庫內容 (JSON 格式)"></textarea>
-            <button class="btn active" onclick="saveToFirebase()">儲存到雲端</button>
+            <h3>單元內容編輯</h3>
+            <p style="font-size: 13px;">* 修改舊單元：輸入正確 ID 後點擊「載入」即可編輯。</p>
+            
+            <div class="action-row">
+                <input type="text" id="edit-unit-id" placeholder="單元 ID (例如: u01)">
+                <button class="btn load-btn" onclick="loadExistingUnit()">🔍 載入</button>
+            </div>
+            
+            <input type="text" id="edit-unit-title" placeholder="單元顯示名稱 (例如: 第 10 單元文法)">
+            
+            <label>教學內容 (系統會保留您的換行排版)：</label>
+            <textarea id="edit-unit-rules" rows="10" placeholder="在此輸入教學內容..."></textarea>
+            
+            <label>測驗題庫 (JSON 格式)：</label>
+            <textarea id="edit-unit-quiz" rows="8" placeholder='[{"q":"題目","options":["A","B"],"ans":0}]'></textarea>
+            
+            <div class="action-row">
+                <button class="btn save-btn" onclick="saveToFirebase()">💾 儲存至雲端</button>
+            </div>
         </div>
     </div>
 </div>
@@ -72,8 +102,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // 🔴 請務必填入您的 Firebase 設定 🔴
     const firebaseConfig = {
-        // 🔴 請在此處貼上你剛才在 Firebase 申請的 API Key 內容
         apiKey: "AIzaSyCyv5f5i4x6_1pKVKGfNNDvOULTYAuqvCg",
   authDomain: "aces-bigexam.firebaseapp.com",
   projectId: "aces-bigexam",
@@ -85,69 +115,109 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 切換分頁
+    let currentQuizData = [];
+    let currentQIdx = 0;
+
     window.showPage = (pageId) => {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
         document.getElementById('page-' + pageId).classList.add('active');
-        if(pageId === 'admin') document.getElementById('admin-content').style.display = 'none';
+        document.getElementById('btn-' + pageId).classList.add('active');
         refreshUnitLists();
     };
 
-    // 密碼檢查 (暫定為 1234，您可以自己改)
     window.checkAdmin = () => {
         if(document.getElementById('admin-pw').value === "1234") {
             document.getElementById('admin-login').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
-        } else {
-            alert("密碼錯誤！");
-        }
+        } else { alert("密碼錯誤！"); }
     };
 
-    // 儲存到 Firebase
+    window.loadExistingUnit = async () => {
+        const id = document.getElementById('edit-unit-id').value;
+        if(!id) return alert("請輸入 ID");
+        const docSnap = await getDoc(doc(db, "english_units", id));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            document.getElementById('edit-unit-title').value = data.title;
+            document.getElementById('edit-unit-rules').value = data.learningContent;
+            document.getElementById('edit-unit-quiz').value = JSON.stringify(data.quizData, null, 2);
+            alert("已載入舊資料，修改後請按儲存。");
+        } else { alert("查無此單元，您可以直接建立為新單元。"); }
+    };
+
     window.saveToFirebase = async () => {
         const id = document.getElementById('edit-unit-id').value;
         const title = document.getElementById('edit-unit-title').value;
         const rules = document.getElementById('edit-unit-rules').value;
-        const quiz = document.getElementById('edit-unit-quiz').value;
-
-        if(!id || !title) return alert("請填寫 ID 與標題");
+        const quizStr = document.getElementById('edit-unit-quiz').value;
 
         try {
+            const quizJson = JSON.parse(quizStr);
             await setDoc(doc(db, "english_units", id), {
                 title: title,
                 learningContent: rules,
-                quizData: JSON.parse(quiz)
+                quizData: quizJson
             });
             alert("儲存成功！");
             refreshUnitLists();
-        } catch (e) {
-            alert("儲存失敗，請檢查格式是否為正確的 JSON");
-        }
+        } catch (e) { alert("JSON 格式錯誤，請檢查符號。"); }
     };
 
-    // 更新下拉選單
     async function refreshUnitLists() {
         const querySnapshot = await getDocs(collection(db, "english_units"));
         const selectors = [document.getElementById('unit-selector-learn'), document.getElementById('unit-selector-quiz')];
         selectors.forEach(s => {
-            s.innerHTML = '<option value="">-- 請選擇單元 --</option>';
+            const oldVal = s.value;
+            s.innerHTML = '<option value="">-- 選擇單元 --</option>';
             querySnapshot.forEach(doc => {
                 s.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`;
             });
+            s.value = oldVal;
         });
     }
 
-    // 載入單元教學
     window.loadSpecificUnit = async (id) => {
         if(!id) return;
         const docSnap = await getDoc(doc(db, "english_units", id));
         if (docSnap.exists()) {
-            document.getElementById('learning-content').innerHTML = `<div class="rule-card">${docSnap.data().learningContent}</div>`;
+            // 使用 innerText 保留原始輸入的換行符號
+            document.getElementById('learning-content').innerText = docSnap.data().learningContent;
         }
     };
 
-    // 這裡可以繼續加入之前的 startQuiz 邏輯...
+    window.startQuiz = async (id) => {
+        if(!id) return;
+        const docSnap = await getDoc(doc(db, "english_units", id));
+        if (docSnap.exists()) {
+            currentQuizData = docSnap.data().quizData;
+            currentQIdx = 0;
+            renderQuestion();
+        }
+    };
+
+    function renderQuestion() {
+        const area = document.getElementById('quiz-area');
+        if(currentQIdx >= currentQuizData.length) {
+            area.innerHTML = "<h3>🎉 單元複習完成！太棒了！</h3>";
+            return;
+        }
+        const q = currentQuizData[currentQIdx];
+        let html = `<div class="q-title">${currentQIdx + 1}. ${q.q}</div>`;
+        q.options.forEach((opt, i) => {
+            html += `<button class="opt-btn" onclick="window.checkUserAns(${i}, ${q.ans})">${opt}</button>`;
+        });
+        area.innerHTML = html;
+    }
+
+    window.checkUserAns = (selected, correct) => {
+        if(selected === correct) {
+            alert("✅ 正確！");
+            currentQIdx++;
+            renderQuestion();
+        } else { alert("❌ 再想一下喔！"); }
+    };
+
     refreshUnitLists();
 </script>
 </body>
