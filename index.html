@@ -16,12 +16,16 @@
         .section { display: none; min-height: 300px; }
         .section.active { display: block; }
         
-        #learning-content { white-space: pre-wrap; word-wrap: break-word; background: #f9f9f9; padding: 20px; border-left: 5px solid var(--primary); border-radius: 4px; font-size: 18px; margin-top: 15px; }
+        /* 播放器樣式 */
+        .audio-player { background: #eef5ff; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: none; border: 1px solid #d0e3ff; }
+        .audio-player.show { display: block; }
+        audio { width: 100%; height: 40px; }
 
-        /* 測驗區優化 */
+        #learning-content { white-space: pre-wrap; word-wrap: break-word; background: #f9f9f9; padding: 20px; border-left: 5px solid var(--primary); border-radius: 4px; font-size: 18px; }
+
+        /* 測驗區 */
         .q-title { font-size: 20px; margin-bottom: 15px; font-weight: bold; }
         .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: white; font-size: 16px; transition: 0.2s; }
-        .opt-btn:disabled { cursor: default; }
         #quiz-feedback { text-align: center; font-size: 20px; font-weight: bold; height: 30px; margin: 15px 0; }
         
         /* 管理介面 */
@@ -46,6 +50,12 @@
 
     <div id="page-learn" class="section active">
         <select id="unit-selector-learn" onchange="loadSpecificUnit(this.value)"></select>
+        
+        <div id="audio-container" class="audio-player">
+            <p style="margin:0 0 10px 0; font-weight:bold; color:var(--primary);">🎧 單元音檔播放：</p>
+            <audio id="unit-audio-player" controls src=""></audio>
+        </div>
+
         <div id="learning-content">歡迎！請選取單元開始複習。</div>
     </div>
 
@@ -72,6 +82,7 @@
             </div>
             
             <input type="text" id="edit-unit-title" placeholder="選單名稱 (如: 4期-A.Be Like)">
+            <input type="text" id="edit-unit-audio" placeholder="音檔網址 (https://...)">
             <textarea id="edit-unit-rules" rows="8" placeholder="教學內容..."></textarea>
             <textarea id="edit-unit-quiz" rows="6" placeholder="題庫 JSON..."></textarea>
             
@@ -102,7 +113,7 @@
 
     let currentQuizData = [];
     let currentQIdx = 0;
-    let isProcessing = false; // 防止連續點擊
+    let isProcessing = false;
 
     window.showPage = (pageId) => {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -126,6 +137,7 @@
         if (docSnap.exists()) {
             const data = docSnap.data();
             document.getElementById('edit-unit-title').value = data.title;
+            document.getElementById('edit-unit-audio').value = data.audioUrl || "";
             document.getElementById('edit-unit-rules').value = data.learningContent;
             document.getElementById('edit-unit-quiz').value = JSON.stringify(data.quizData, null, 2);
             alert("載入成功");
@@ -135,12 +147,16 @@
     window.saveToFirebase = async () => {
         const id = document.getElementById('edit-unit-id').value;
         const title = document.getElementById('edit-unit-title').value;
+        const audio = document.getElementById('edit-unit-audio').value;
         const rules = document.getElementById('edit-unit-rules').value;
         const quizStr = document.getElementById('edit-unit-quiz').value;
         if(!id || !title) return alert("ID 或名稱不能空白");
         try {
             await setDoc(doc(db, "english_units", id), {
-                title: title, learningContent: rules, quizData: JSON.parse(quizStr)
+                title: title, 
+                audioUrl: audio,
+                learningContent: rules, 
+                quizData: JSON.parse(quizStr)
             });
             alert("儲存成功");
             refreshUnitLists();
@@ -150,13 +166,9 @@
     window.deleteUnit = async () => {
         const id = document.getElementById('edit-unit-id').value;
         if(!id) return alert("請輸入要刪除的單元 ID");
-        if(confirm("⚠ 確定要永久刪除「" + id + "」單元嗎？此動作無法復原。")) {
+        if(confirm("⚠ 確定要永久刪除此單元嗎？")) {
             await deleteDoc(doc(db, "english_units", id));
             alert("已刪除單元");
-            document.getElementById('edit-unit-id').value = "";
-            document.getElementById('edit-unit-title').value = "";
-            document.getElementById('edit-unit-rules').value = "";
-            document.getElementById('edit-unit-quiz').value = "";
             refreshUnitLists();
         }
     };
@@ -177,7 +189,22 @@
     window.loadSpecificUnit = async (id) => {
         if(!id) return;
         const docSnap = await getDoc(doc(db, "english_units", id));
-        if (docSnap.exists()) document.getElementById('learning-content').innerText = docSnap.data().learningContent;
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            document.getElementById('learning-content').innerText = data.learningContent;
+            
+            // 處理音檔播放器顯示與更換網址
+            const playerContainer = document.getElementById('audio-container');
+            const player = document.getElementById('unit-audio-player');
+            if (data.audioUrl) {
+                playerContainer.classList.add('show');
+                player.src = data.audioUrl;
+                player.load(); // 重新載入音檔
+            } else {
+                playerContainer.classList.remove('show');
+                player.src = "";
+            }
+        }
     };
 
     window.startQuiz = async (id) => {
@@ -212,17 +239,13 @@
         if(isProcessing) return;
         const feedback = document.getElementById('quiz-feedback');
         const btns = document.querySelectorAll('.opt-btn');
-        
         isProcessing = true;
-        btns.forEach(b => b.disabled = true); // 鎖定按鈕
+        btns.forEach(b => b.disabled = true);
 
         if(selected === correct) {
             feedback.innerText = "✅ 正確！";
             feedback.style.color = "var(--success)";
-            setTimeout(() => {
-                currentQIdx++;
-                renderQuestion();
-            }, 800); // 0.8秒後自動下一題
+            setTimeout(() => { currentQIdx++; renderQuestion(); }, 800);
         } else {
             feedback.innerText = "❌ 再試一次！";
             feedback.style.color = "var(--error)";
