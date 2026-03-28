@@ -16,7 +16,7 @@
         .section { display: none; min-height: 300px; }
         .section.active { display: block; }
         
-        /* 核心排版修復：保留換行與原始格式 */
+        /* 保持輸入排版 */
         #learning-content { 
             white-space: pre-wrap; 
             word-wrap: break-word;
@@ -44,7 +44,7 @@
 <body>
 
 <div class="container">
-    <h1 id="app-main-title">ACES 複習</h1>
+    <h1>ACES 複習</h1>
 
     <div class="nav">
         <button class="btn active" id="btn-learn" onclick="showPage('learn')">📖 學習模式</button>
@@ -55,7 +55,7 @@
     <div id="page-learn" class="section active">
         <label>請選擇複習單元：</label>
         <select id="unit-selector-learn" onchange="loadSpecificUnit(this.value)"></select>
-        <div id="learning-content">歡迎使用 ACES 複習系統，請先選擇單元。</div>
+        <div id="learning-content">歡迎使用 ACES 複習系統，請先從選單選取單元。</div>
     </div>
 
     <div id="page-quiz" class="section">
@@ -76,23 +76,24 @@
         
         <div id="admin-content" style="display:none;" class="admin-box">
             <h3>單元內容編輯</h3>
-            <p style="font-size: 13px;">* 修改舊單元：輸入正確 ID 後點擊「載入」即可編輯。</p>
+            <p style="font-size: 13px; color: #666;">* 單元 ID 建議使用英文或數字組合 (如: stage4-unitA)。</p>
             
             <div class="action-row">
-                <input type="text" id="edit-unit-id" placeholder="單元 ID (例如: u01)">
+                <input type="text" id="edit-unit-id" placeholder="單元 ID (唯一代碼)">
                 <button class="btn load-btn" onclick="loadExistingUnit()">🔍 載入</button>
             </div>
             
-            <input type="text" id="edit-unit-title" placeholder="單元顯示名稱 (例如: 第 10 單元文法)">
+            <label>選單顯示名稱 (例如: 4期-A.Be Like)：</label>
+            <input type="text" id="edit-unit-title" placeholder="這會出現在下拉選單中">
             
-            <label>教學內容 (系統會保留您的換行排版)：</label>
-            <textarea id="edit-unit-rules" rows="10" placeholder="在此輸入教學內容..."></textarea>
+            <label>教學內容 (系統會保留換行)：</label>
+            <textarea id="edit-unit-rules" rows="10" placeholder="輸入教學內容..."></textarea>
             
             <label>測驗題庫 (JSON 格式)：</label>
             <textarea id="edit-unit-quiz" rows="8" placeholder='[{"q":"題目","options":["A","B"],"ans":0}]'></textarea>
             
             <div class="action-row">
-                <button class="btn save-btn" onclick="saveToFirebase()">💾 儲存至雲端</button>
+                <button class="btn save-btn" onclick="saveToFirebase()">💾 儲存並同步</button>
             </div>
         </div>
     </div>
@@ -102,7 +103,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 🔴 請務必填入您的 Firebase 設定 🔴
+    // 🔴 請更換為您的 Firebase 設定 🔴
     const firebaseConfig = {
         apiKey: "AIzaSyCyv5f5i4x6_1pKVKGfNNDvOULTYAuqvCg",
   authDomain: "aces-bigexam.firebaseapp.com",
@@ -135,15 +136,15 @@
 
     window.loadExistingUnit = async () => {
         const id = document.getElementById('edit-unit-id').value;
-        if(!id) return alert("請輸入 ID");
+        if(!id) return alert("請輸入單元 ID");
         const docSnap = await getDoc(doc(db, "english_units", id));
         if (docSnap.exists()) {
             const data = docSnap.data();
             document.getElementById('edit-unit-title').value = data.title;
             document.getElementById('edit-unit-rules').value = data.learningContent;
             document.getElementById('edit-unit-quiz').value = JSON.stringify(data.quizData, null, 2);
-            alert("已載入舊資料，修改後請按儲存。");
-        } else { alert("查無此單元，您可以直接建立為新單元。"); }
+            alert("已載入「" + data.title + "」的資料。");
+        } else { alert("找不到此 ID，可直接建立為新單元。"); }
     };
 
     window.saveToFirebase = async () => {
@@ -152,6 +153,8 @@
         const rules = document.getElementById('edit-unit-rules').value;
         const quizStr = document.getElementById('edit-unit-quiz').value;
 
+        if(!id || !title) return alert("單元 ID 與顯示名稱不能空白！");
+
         try {
             const quizJson = JSON.parse(quizStr);
             await setDoc(doc(db, "english_units", id), {
@@ -159,9 +162,9 @@
                 learningContent: rules,
                 quizData: quizJson
             });
-            alert("儲存成功！");
+            alert("儲存成功！單元名稱為：" + title);
             refreshUnitLists();
-        } catch (e) { alert("JSON 格式錯誤，請檢查符號。"); }
+        } catch (e) { alert("JSON 格式有誤，請檢查括號與逗號。"); }
     };
 
     async function refreshUnitLists() {
@@ -171,6 +174,7 @@
             const oldVal = s.value;
             s.innerHTML = '<option value="">-- 選擇單元 --</option>';
             querySnapshot.forEach(doc => {
+                // 使用 title 作為顯示文字，ID 作為後台標記
                 s.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`;
             });
             s.value = oldVal;
@@ -181,7 +185,6 @@
         if(!id) return;
         const docSnap = await getDoc(doc(db, "english_units", id));
         if (docSnap.exists()) {
-            // 使用 innerText 保留原始輸入的換行符號
             document.getElementById('learning-content').innerText = docSnap.data().learningContent;
         }
     };
@@ -199,7 +202,7 @@
     function renderQuestion() {
         const area = document.getElementById('quiz-area');
         if(currentQIdx >= currentQuizData.length) {
-            area.innerHTML = "<h3>🎉 單元複習完成！太棒了！</h3>";
+            area.innerHTML = "<h3 style='text-align:center; color:var(--success)'>🎉 複習完成！</h3>";
             return;
         }
         const q = currentQuizData[currentQIdx];
@@ -215,7 +218,7 @@
             alert("✅ 正確！");
             currentQIdx++;
             renderQuestion();
-        } else { alert("❌ 再想一下喔！"); }
+        } else { alert("❌ 再想一下！"); }
     };
 
     refreshUnitLists();
