@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACES 複習系統</title>
+    <title>ACES 複習系統 - 英雄榜版</title>
     <style>
-        :root { --primary: #4a90e2; --bg: #f5f7fa; --dark: #333; --success: #2ecc71; --error: #e74c3c; --warning: #f39c12; }
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --dark: #333; --success: #2ecc71; --error: #e74c3c; --warning: #f39c12; --gold: #f1c40f; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); line-height: 1.6; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 750px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: var(--primary); margin-bottom: 25px; }
         
         .nav { display: flex; gap: 10px; margin-bottom: 25px; }
@@ -16,34 +16,31 @@
         .section { display: none; min-height: 300px; }
         .section.active { display: block; }
         
-        /* 播放器 */
+        /* 播放器與內容 */
         .audio-player { background: #eef5ff; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: none; border: 1px solid #d0e3ff; }
         .audio-player.show { display: block; }
         audio { width: 100%; height: 40px; }
-
-        #learning-content { white-space: pre-wrap; word-wrap: break-word; background: #f9f9f9; padding: 20px; border-left: 5px solid var(--primary); border-radius: 4px; font-size: 18px; }
+        #learning-content { white-space: pre-wrap; background: #f9f9f9; padding: 20px; border-left: 5px solid var(--primary); border-radius: 4px; font-size: 18px; margin-bottom: 20px;}
 
         /* 測驗區 */
-        .q-title { font-size: 20px; margin-bottom: 15px; font-weight: bold; }
-        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: white; font-size: 16px; transition: 0.2s; }
+        .opt-btn { display: block; width: 100%; text-align: left; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: white; font-size: 16px; }
         #quiz-feedback { text-align: center; font-size: 20px; font-weight: bold; height: 30px; margin: 15px 0; }
         
+        /* 英雄榜樣式 */
+        .leaderboard { margin-top: 30px; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; }
+        .leaderboard h3 { margin-top: 0; color: var(--warning); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .lb-table { width: 100%; border-collapse: collapse; }
+        .lb-table th, .lb-table td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        .rank-1 { color: var(--gold); font-weight: bold; }
+
         /* 結算頁面 */
         .result-card { text-align: center; padding: 20px; background: #fdfdfd; border: 2px solid #eee; border-radius: 12px; }
-        .score-big { font-size: 48px; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        .comment { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
-        .wrong-list { text-align: left; margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px; }
-        .wrong-item { background: #fff5f5; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--error); }
-        .wrong-q { font-weight: bold; display: block; margin-bottom: 5px; }
-        .wrong-ans { color: var(--success); font-weight: bold; }
-        .user-ans { color: var(--error); text-decoration: line-through; margin-right: 10px; }
+        .score-big { font-size: 54px; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .submit-box { background: #eef9f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb; }
 
-        /* 管理介面 */
-        .admin-box { background: #fff3cd; padding: 20px; border-radius: 10px; border: 1px solid #ffeeba; }
-        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .action-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .save-btn { background: var(--success); color: white; flex: 2; min-width: 150px; }
-        .delete-btn { background: var(--error); color: white; flex: 1; }
+        /* 管理與通用 */
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .wrong-item { background: #fff5f5; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--error); text-align: left; }
     </style>
 </head>
 <body>
@@ -54,25 +51,25 @@
     <div class="nav">
         <button class="btn active" id="btn-learn">📖 學習模式</button>
         <button class="btn" id="btn-quiz">✍️ 測驗模式</button>
-        <button class="btn" id="btn-admin">⚙️ 管理後台</button>
+        <button class="btn" id="btn-admin">⚙️ 管理</button>
     </div>
 
     <div id="page-learn" class="section active">
         <select id="unit-selector-learn"></select>
         <div id="audio-container" class="audio-player">
-            <p style="margin:0 0 10px 0; font-weight:bold; color:var(--primary);">🎧 單元音檔播放：</p>
             <audio id="unit-audio-player" controls src=""></audio>
         </div>
-        <div id="learning-content">歡迎！請選取單元開始複習。</div>
+        <div id="learning-content">請選取單元。</div>
+        <div id="lb-learn" class="leaderboard" style="display:none;"></div>
     </div>
 
     <div id="page-quiz" class="section">
         <select id="unit-selector-quiz"></select>
-        <hr>
         <div id="quiz-area">
-            <p style="text-align:center; color:#888;">選取單元後將自動開始。</p>
+            <p style="text-align:center; color:#888;">選取單元後開始挑戰英雄榜！</p>
         </div>
         <div id="quiz-feedback"></div>
+        <div id="lb-quiz" class="leaderboard" style="display:none;"></div>
     </div>
 
     <div id="page-admin" class="section">
@@ -80,31 +77,23 @@
             <input type="password" id="admin-pw" placeholder="密碼 1234">
             <button class="btn active" style="width:100%" id="login-submit-btn">登入</button>
         </div>
-        <div id="admin-content" style="display:none;" class="admin-box">
-            <h3>單元編輯</h3>
-            <div class="action-row">
-                <input type="text" id="edit-unit-id" placeholder="單元 ID (唯一碼)">
-                <button class="btn" style="background:#6c757d; color:white;" id="load-unit-btn">🔍 載入</button>
-            </div>
-            <input type="text" id="edit-unit-title" placeholder="選單名稱 (如: 4期-A.Be Like)">
+        <div id="admin-content" style="display:none;">
+            <input type="text" id="edit-unit-id" placeholder="單元 ID">
+            <input type="text" id="edit-unit-title" placeholder="單元名稱">
             <input type="text" id="edit-unit-audio" placeholder="音檔網址">
-            <textarea id="edit-unit-rules" rows="8" placeholder="教學內容..."></textarea>
-            <textarea id="edit-unit-quiz" rows="6" placeholder="題庫 JSON..."></textarea>
-            <div class="action-row">
-                <button class="btn save-btn" id="save-unit-btn">💾 儲存</button>
-                <button class="btn delete-btn" id="delete-unit-btn">🗑️ 刪除</button>
-            </div>
+            <textarea id="edit-unit-rules" rows="5" placeholder="內容"></textarea>
+            <textarea id="edit-unit-quiz" rows="5" placeholder="JSON"></textarea>
+            <button class="btn" style="background:var(--success); color:white; width:100%; margin-bottom:10px;" id="save-unit-btn">儲存單元</button>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 🔴 請填入您的 Firebase 設定 🔴
     const firebaseConfig = {
-        apiKey: "AIzaSyCyv5f5i4x6_1pKVKGfNNDvOULTYAuqvCg",
+               apiKey: "AIzaSyCyv5f5i4x6_1pKVKGfNNDvOULTYAuqvCg",
   authDomain: "aces-bigexam.firebaseapp.com",
   projectId: "aces-bigexam",
   storageBucket: "aces-bigexam.firebasestorage.app",
@@ -115,12 +104,13 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let currentUnitId = "";
     let currentQuizData = [];
     let currentQIdx = 0;
-    let isProcessing = false;
     let wrongAnswers = [];
+    let isProcessing = false;
 
-    // --- 頁面切換邏輯 ---
+    // 切換頁面
     const showPage = (pageId) => {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
@@ -133,104 +123,83 @@
     document.getElementById('btn-quiz').addEventListener('click', () => showPage('quiz'));
     document.getElementById('btn-admin').addEventListener('click', () => showPage('admin'));
 
-    // --- 管理員登入 ---
+    // 登入
     document.getElementById('login-submit-btn').addEventListener('click', () => {
-        const pw = document.getElementById('admin-pw').value;
-        if(pw === "1234") {
+        if(document.getElementById('admin-pw').value === "1234") {
             document.getElementById('admin-login').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
-        } else { alert("密碼錯誤"); }
-    });
-
-    // --- 載入現有單元 ---
-    document.getElementById('load-unit-btn').addEventListener('click', async () => {
-        const id = document.getElementById('edit-unit-id').value;
-        if(!id) return alert("請輸入 ID");
-        const docSnap = await getDoc(doc(db, "english_units", id));
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            document.getElementById('edit-unit-title').value = data.title || "";
-            document.getElementById('edit-unit-audio').value = data.audioUrl || "";
-            document.getElementById('edit-unit-rules').value = data.learningContent || "";
-            document.getElementById('edit-unit-quiz').value = JSON.stringify(data.quizData, null, 2);
-            alert("載入成功");
-        } else { alert("查無此單元"); }
-    });
-
-    // --- 儲存單元 ---
-    document.getElementById('save-unit-btn').addEventListener('click', async () => {
-        const id = document.getElementById('edit-unit-id').value;
-        const title = document.getElementById('edit-unit-title').value;
-        const audio = document.getElementById('edit-unit-audio').value;
-        const rules = document.getElementById('edit-unit-rules').value;
-        const quizStr = document.getElementById('edit-unit-quiz').value;
-        if(!id || !title) return alert("ID 與名稱為必填");
-        try {
-            await setDoc(doc(db, "english_units", id), {
-                title, audioUrl: audio, learningContent: rules, quizData: JSON.parse(quizStr)
-            });
-            alert("儲存成功");
-            refreshUnitLists();
-        } catch (e) { alert("儲存失敗：請檢查 JSON 格式或 Firebase 權限"); }
-    });
-
-    // --- 刪除單元 ---
-    document.getElementById('delete-unit-btn').addEventListener('click', async () => {
-        const id = document.getElementById('edit-unit-id').value;
-        if(!id) return;
-        if(confirm("確定刪除？")) {
-            await deleteDoc(doc(db, "english_units", id));
-            alert("已刪除");
-            refreshUnitLists();
         }
     });
 
-    // --- 刷新選單 ---
+    // 儲存單元
+    document.getElementById('save-unit-btn').addEventListener('click', async () => {
+        const id = document.getElementById('edit-unit-id').value;
+        const data = {
+            title: document.getElementById('edit-unit-title').value,
+            audioUrl: document.getElementById('edit-unit-audio').value,
+            learningContent: document.getElementById('edit-unit-rules').value,
+            quizData: JSON.parse(document.getElementById('edit-unit-quiz').value)
+        };
+        await setDoc(doc(db, "english_units", id), data);
+        alert("儲存成功");
+    });
+
+    // 刷新選單
     async function refreshUnitLists() {
-        try {
-            const querySnapshot = await getDocs(collection(db, "english_units"));
-            const learnSel = document.getElementById('unit-selector-learn');
-            const quizSel = document.getElementById('unit-selector-quiz');
-            [learnSel, quizSel].forEach(s => {
-                const currentVal = s.value;
-                s.innerHTML = '<option value="">-- 選擇單元 --</option>';
-                querySnapshot.forEach(doc => {
-                    s.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`;
-                });
-                s.value = currentVal;
-            });
-        } catch(e) { console.error("無法載入列表", e); }
+        const querySnapshot = await getDocs(collection(db, "english_units"));
+        const lSel = document.getElementById('unit-selector-learn');
+        const qSel = document.getElementById('unit-selector-quiz');
+        [lSel, qSel].forEach(s => {
+            const val = s.value;
+            s.innerHTML = '<option value="">-- 選擇單元 --</option>';
+            querySnapshot.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`);
+            s.value = val;
+        });
     }
 
-    // --- 學習模式載入 ---
+    // 載入學習內容 + 英雄榜
     document.getElementById('unit-selector-learn').addEventListener('change', async (e) => {
         const id = e.target.value;
         if(!id) return;
         const docSnap = await getDoc(doc(db, "english_units", id));
         if (docSnap.exists()) {
-            const data = docSnap.data();
-            document.getElementById('learning-content').innerText = data.learningContent;
-            const playerContainer = document.getElementById('audio-container');
+            document.getElementById('learning-content').innerText = docSnap.data().learningContent;
             const player = document.getElementById('unit-audio-player');
-            if (data.audioUrl) {
-                playerContainer.classList.add('show');
-                player.src = data.audioUrl;
-                player.load();
-            } else { playerContainer.classList.remove('show'); }
+            document.getElementById('audio-container').classList.toggle('show', !!docSnap.data().audioUrl);
+            player.src = docSnap.data().audioUrl || "";
+            loadLeaderboard(id, "lb-learn");
         }
     });
 
-    // --- 測驗模式開始 ---
+    // 載入英雄榜資料
+    async function loadLeaderboard(unitId, elementId) {
+        const container = document.getElementById(elementId);
+        container.style.display = 'block';
+        container.innerHTML = '<h3>🏆 英雄榜 (最高分紀錄)</h3><p>載入中...</p>';
+        
+        const q = query(collection(db, "quiz_leaderboard"), where("unitId", "==", unitId), orderBy("score", "desc"), limit(10));
+        const snap = await getDocs(q);
+        
+        let html = `<h3>🏆 英雄榜 (最高分紀錄)</h3><table class="lb-table"><tr><th>排名</th><th>姓名</th><th>最高準確率</th></tr>`;
+        let count = 1;
+        snap.forEach(doc => {
+            const data = doc.data();
+            html += `<tr class="${count===1?'rank-1':''}"><td>${count}</td><td>${data.userName}</td><td>${data.score}%</td></tr>`;
+            count++;
+        });
+        if(count === 1) html += '<tr><td colspan="3">尚無紀錄，快來挑戰！</td></tr>';
+        container.innerHTML = html + `</table>`;
+    }
+
+    // 測驗邏輯
     document.getElementById('unit-selector-quiz').addEventListener('change', async (e) => {
-        const id = e.target.value;
-        if(!id) return;
-        const docSnap = await getDoc(doc(db, "english_units", id));
-        if (docSnap.exists()) {
-            currentQuizData = docSnap.data().quizData;
-            currentQIdx = 0;
-            wrongAnswers = [];
-            renderQuestion();
-        }
+        currentUnitId = e.target.value;
+        if(!currentUnitId) return;
+        const docSnap = await getDoc(doc(db, "english_units", currentUnitId));
+        currentQuizData = docSnap.data().quizData;
+        currentQIdx = 0; wrongAnswers = [];
+        renderQuestion();
+        loadLeaderboard(currentUnitId, "lb-quiz");
     });
 
     function renderQuestion() {
@@ -238,64 +207,59 @@
         document.getElementById('quiz-feedback').innerText = "";
         isProcessing = false;
         if(currentQIdx >= currentQuizData.length) { showResult(); return; }
-
         const q = currentQuizData[currentQIdx];
-        let html = `<div class="q-title">${currentQIdx + 1}. ${q.q}</div>`;
-        q.options.forEach((opt, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'opt-btn';
-            btn.innerText = opt;
-            btn.onclick = () => checkAns(i, q.ans);
-            html += btn.outerHTML;
-        });
-        area.innerHTML = html;
-        // 重新綁定事件
-        area.querySelectorAll('.opt-btn').forEach((btn, idx) => {
-            btn.addEventListener('click', () => checkAns(idx, currentQuizData[currentQIdx].ans));
-        });
+        area.innerHTML = `<div class="q-title"><b>第 ${currentQIdx+1} 題</b><br>${q.q}</div>` + 
+            q.options.map((o, i) => `<button class="opt-btn" data-idx="${i}">${o}</button>`).join('');
+        area.querySelectorAll('.opt-btn').forEach(b => b.onclick = () => checkAns(parseInt(b.dataset.idx)));
     }
 
-    function checkAns(selected, correct) {
-        if(isProcessing) return;
-        isProcessing = true;
-        const feedback = document.getElementById('quiz-feedback');
-        document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
-        const q = currentQuizData[currentQIdx];
-
-        if(selected === correct) {
-            feedback.innerText = "✅ 正確！";
-            feedback.style.color = "var(--success)";
-            setTimeout(() => { currentQIdx++; renderQuestion(); }, 800);
+    function checkAns(idx) {
+        if(isProcessing) return; isProcessing = true;
+        const correct = currentQuizData[currentQIdx].ans;
+        const fb = document.getElementById('quiz-feedback');
+        if(idx === correct) {
+            fb.innerText = "✅ 正確"; fb.style.color = "var(--success)";
+            setTimeout(() => { currentQIdx++; renderQuestion(); }, 700);
         } else {
-            feedback.innerText = "❌ 答錯了！";
-            feedback.style.color = "var(--error)";
-            wrongAnswers.push({ q: q.q, user: q.options[selected], correct: q.options[correct] });
-            setTimeout(() => { currentQIdx++; renderQuestion(); }, 1200);
+            fb.innerText = "❌ 答錯"; fb.style.color = "var(--error)";
+            wrongAnswers.push({q: currentQuizData[currentQIdx].q, user: currentQuizData[currentQIdx].options[idx], correct: currentQuizData[currentQIdx].options[correct]});
+            setTimeout(() => { currentQIdx++; renderQuestion(); }, 1000);
         }
     }
 
     function showResult() {
+        const score = Math.round(((currentQuizData.length - wrongAnswers.length) / currentQuizData.length) * 100);
         const area = document.getElementById('quiz-area');
-        const ratio = Math.round(((currentQuizData.length - wrongAnswers.length) / currentQuizData.length) * 100);
-        let comment = "完美！";
-        if(ratio < 60) comment = "努力加強";
-        else if(ratio <= 80) comment = "再加強";
-        else if(ratio <= 90) comment = "還可以";
-        else if(ratio < 100) comment = "不錯";
-
-        let wrongHtml = wrongAnswers.map(w => `
-            <div class="wrong-item">
-                <span class="wrong-q">${w.q}</span>
-                <span class="user-ans">${w.user}</span> <span class="wrong-ans">${w.correct}</span>
-            </div>`).join('');
-
+        let wrongHtml = wrongAnswers.map(w => `<div class="wrong-item"><b>${w.q}</b><br>❌ ${w.user} | ✅ ${w.correct}</div>`).join('');
+        
         area.innerHTML = `
             <div class="result-card">
-                <div class="comment">${comment}</div>
-                <div class="score-big">${ratio}%</div>
-                <button class="btn active" onclick="location.reload()">🔄 返回</button>
-                <div class="wrong-list"><h3>錯題複習：</h3>${wrongHtml}</div>
+                <div class="score-big">${score}%</div>
+                <div class="submit-box">
+                    <input type="text" id="user-name" placeholder="請輸入姓名登錄英雄榜" style="margin-bottom:10px">
+                    <button class="btn" style="background:var(--success); color:white;" id="submit-score-btn">送出成績</button>
+                </div>
+                <button class="btn active" onclick="location.reload()">🔄 結束離開</button>
+                <div style="margin-top:20px">${wrongHtml}</div>
             </div>`;
+
+        document.getElementById('submit-score-btn').onclick = async () => {
+            const name = document.getElementById('user-name').value.trim();
+            if(!name) return alert("請輸入姓名");
+            
+            // 檢查是否已有更高紀錄
+            const recordId = `${currentUnitId}_${name}`;
+            const docRef = doc(db, "quiz_leaderboard", recordId);
+            const docSnap = await getDoc(docRef);
+            
+            if (!docSnap.exists() || score > docSnap.data().score) {
+                await setDoc(docRef, { unitId: currentUnitId, userName: name, score: score, date: new Date() });
+                alert("成績登錄成功！");
+            } else {
+                alert(`挑戰完成！但你目前的最高紀錄仍是 ${docSnap.data().score}%`);
+            }
+            loadLeaderboard(currentUnitId, "lb-quiz");
+        };
     }
 
     refreshUnitLists();
